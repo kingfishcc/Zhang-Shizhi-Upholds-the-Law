@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>張釋之執法（作者：司馬遷）　重組練習</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <link href="https://cdn.jsdelivr.net/npm/gensen-rounded-web@1.0.1/css/gensen-rounded-tw.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Chiron+GoRound+TC:wght@400;500;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary-color: #059669; /* Emerald 600 */
+            --secondary-color: #10b981; /* Emerald 500 */
+            --accent-color: #f59e0b; /* Amber 500 */
+            --success-color: #10b981; /* Emerald 500 */
+            --error-color: #ef4444; /* Red 500 */
+            
+            /* 字體順序設定 */
+            --main-font: 'GenSenRounded TW', 'Chiron GoRound TC', 'Microsoft JhengHei', sans-serif;
+        }
+
+        body {
+            font-family: var(--main-font);
+            font-optical-sizing: auto;
+            
+            background-color: #f0fdf4;
+            background-image: radial-gradient(#dcfce7 1px, transparent 1px);
+            background-size: 20px 20px;
+            color: #1f2937;
+            -webkit-tap-highlight-color: transparent;
+            /* 禁止文字選取，避免學生誤觸複製 */
+            -webkit-user-select: none; 
+            -moz-user-select: none;    
+            -ms-user-select: none;     
+            user-select: none;         
+        }
+
+        /* Card Styles */
+        .exercise-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 24px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            border: 2px solid rgba(255, 255, 255, 0.8);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        /* Word Items */
+        .word-item {
+            display: inline-block;
+            font-family: var(--main-font);
+            padding: 0.6rem 1.2rem;
+            background: white;
+            border: 3px solid #e5e7eb;
+            border-radius: 16px;
+            color: #374151;
+            font-weight: 700;
+            cursor: pointer;
+            user-select: none;
+            transition: all 0.15s ease;
+            box-shadow: 0 4px 0 #e5e7eb;
+            font-size: 1.35rem;
+            margin: 6px;
+            touch-action: manipulation;
+        }
+        .word-item:active {
+            transform: translateY(4px);
+            box-shadow: none;
+            background-color: #ecfdf5;
+        }
+        .word-item:hover {
+            border-color: var(--secondary-color);
+            color: var(--secondary-color);
+            box-shadow: 0 4px 0 var(--secondary-color);
+        }
+        .word-item:active:hover {
+             box-shadow: none;
+        }
+
+        /* Drop Zone */
+        .drop-zone {
+            min-height: 90px;
+            background-color: #f9fafb;
+            border: 3px dashed #cbd5e1;
+            border-radius: 20px;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+            padding: 20px;
+            font-size: 1.35rem;
+            line-height: 1.6;
+            font-family: var(--main-font);
+        }
+        .drop-zone:empty::before {
+            content: '請點選下方詞語卡片，排列成通順的文句';
+            color: #94a3b8;
+            font-size: 1.1rem;
+            width: 100%;
+            text-align: center;
+            padding: 10px;
+            font-weight: 500;
+        }
+        .drop-zone.correct {
+            background-color: #ecfdf5;
+            border-color: var(--success-color);
+            border-style: solid;
+        }
+        .drop-zone.incorrect {
+            background-color: #fef2f2;
+            border-color: var(--error-color);
+            border-style: solid;
+            animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+        }
+
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
+
+        /* Buttons */
+        .btn-action {
+            transition: all 0.2s;
+            border-radius: 16px;
+            font-family: var(--main-font);
+        }
+        .btn-action:active {
+            transform: scale(0.95);
+        }
+
+        /* Feedback Animation Styles */
+        .feedback {
+            transition: all 0.3s ease;
+            overflow: hidden;
+            opacity: 1;
+            margin-top: 1rem;
+            max-height: 3rem;
+            font-family: var(--main-font);
+        }
+        
+        .feedback:empty {
+            margin-top: 0;
+            max-height: 0;
+            opacity: 0;
+            padding: 0;
+        }
+
+        /* Completion Animation */
+        .checkmark-wrapper {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto;
+        }
+        .checkmark {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            display: block;
+            stroke-width: 4;
+            stroke: #fff;
+            stroke-miterlimit: 10;
+            box-shadow: inset 0px 0px 0px #10b981;
+            animation: fill .4s ease-in-out .4s forwards, scale .3s ease-in-out .9s both;
+        }
+        .checkmark__check {
+            transform-origin: 50% 50%;
+            stroke-dasharray: 48;
+            stroke-dashoffset: 48;
+            animation: stroke 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.8s forwards;
+        }
+        @keyframes stroke {
+            100% { stroke-dashoffset: 0; }
+        }
+        @keyframes scale {
+            0%, 100% { transform: none; }
+            50% { transform: scale3d(1.1, 1.1, 1); }
+        }
+        @keyframes fill {
+            100% { box-shadow: inset 0px 0px 0px 80px #10b981; }
+        }
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: #f00;
+            animation: confetti-fall 3s linear forwards;
+        }
+        @keyframes confetti-fall {
+            0% { transform: translateY(-10vh) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+        }
+    </style>
+</head>
+<body class="min-h-screen p-4 pb-12" oncontextmenu="return false;">
+
+    <!-- Completion Overlay -->
+    <div id="completion-overlay" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm hidden opacity-0 transition-opacity duration-500">
+        <div class="bg-white p-8 md:p-12 rounded-3xl shadow-2xl text-center transform scale-90 transition-transform duration-500 max-w-md w-full mx-4 relative overflow-hidden" id="completion-modal">
+            <div class="checkmark-wrapper mb-6">
+                <svg class="checkmark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
+                    <circle class="checkmark__circle" cx="26" cy="26" r="25" fill="none"/>
+                    <path class="checkmark__check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
+                </svg>
+            </div>
+            <h2 class="text-3xl font-extrabold text-gray-800 mb-2 animate-bounce" style="font-family: var(--main-font)">太棒了！</h2>
+            <p class="text-gray-600 text-lg mb-8">你已經完成了所有的練習！</p>
+            <button onclick="closeOverlay()" class="w-full bg-emerald-600 text-white text-lg px-6 py-3 rounded-xl font-bold hover:bg-emerald-700 transition shadow-lg transform hover:scale-105 active:scale-95 btn-action">
+                關閉
+            </button>
+        </div>
+    </div>
+
+    <div class="max-w-3xl mx-auto">
+        <!-- Header -->
+        <header class="text-center mb-10">
+            <div class="inline-block p-1 rounded-full bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 mb-4">
+                <div class="bg-white rounded-full px-6 py-2">
+                    <span class="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-600 font-bold tracking-wide uppercase text-sm font-sans">Classical Chinese Literature</span>
+                </div>
+            </div>
+            <h1 class="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-2 leading-snug tracking-tight">
+                張釋之執法
+                <span class="text-xl sm:text-2xl text-gray-600 font-bold mx-1 align-baseline">（作者：司馬遷）</span>
+                重組練習
+            </h1>
+            <p class="text-lg text-gray-600 font-bold tracking-wide">請將下方文句重新排列成正確的課文段落</p>
+            
+            <!-- Progress -->
+            <div class="mt-6 max-w-xs mx-auto">
+                <div class="h-4 bg-gray-200 rounded-full overflow-hidden border border-gray-100">
+                    <div id="progress-bar" class="h-full bg-gradient-to-r from-emerald-400 to-teal-400 transition-all duration-500 ease-out" style="width: 0%"></div>
+                </div>
+                <p class="text-sm text-gray-500 mt-2 text-center font-bold" id="progress-text">完成進度：0/4</p>
+            </div>
+        </header>
+
+        <!-- Exercise Container -->
+        <div id="container-exercises" class="space-y-8"></div>
+
+        <!-- Footer / Citation -->
+        <footer class="mt-16 mb-8 text-center">
+            <div class="max-w-xl mx-auto px-4 space-y-1">
+                <p class="text-gray-600 font-medium text-sm">原版工具：特教米克師；延伸開發：金魚老師</p>
+                <p class="text-gray-600 font-medium text-sm">
+                    工具連結：<a href="https://reurl.cc/KO98Q9" target="_blank" rel="noopener noreferrer" class="hover:text-emerald-600 hover:underline transition-colors">https://reurl.cc/KO98Q9</a>
+                </p>
+                
+                <p class="text-xs text-gray-400 pt-2">本作品基於原版工具改編，採用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh_TW" target="_blank" rel="noopener noreferrer" class="hover:text-gray-500 underline decoration-dotted">CC BY-NC-SA 4.0</a> 授權。</p>
+            </div>
+        </footer>
+
+    </div>
+
+    <script>
+        // --- DATA ---
+        const exercises = [
+            {
+                id: 'q1',
+                label: '第一段',
+                answer: '釋之為廷尉。',
+                chunks: ['釋之', '為廷尉。']
+            },
+            {
+                id: 'q2',
+                label: '第二段',
+                answer: '上行出中渭橋，有一人從橋下走出，乘輿馬驚。於是使騎捕，屬之廷尉。釋之治問。曰：「縣人來，聞蹕，匿橋下。久之，以為行已過，即出，見乘輿車騎即走耳。」',
+                chunks: [
+                    '上行出中渭橋，', '有一人從橋下走出，', '乘輿馬驚。', 
+                    '於是使騎捕，', '屬之廷尉。', '釋之治問。', 
+                    '曰：「縣人來，', '聞蹕，', '匿橋下。', 
+                    '久之，', '以為行已過，', '即出，', 
+                    '見乘輿車騎即走耳。」'
+                ]
+            },
+            {
+                id: 'q3',
+                label: '第三段',
+                answer: '廷尉奏當：一人犯蹕，當罰金。文帝怒曰：「此人親驚吾馬，吾馬賴柔和，令他馬，固不敗傷我乎？而廷尉乃當之罰金！」釋之曰：「法者，天子所與天下公共也。今法如此而更重之，是法不信於民也。且方其時，上使立誅之則已。今既下廷尉，廷尉，天下之平也，一傾而天下用法皆為輕重，民安所錯其手足？唯陛下察之。」',
+                chunks: [
+                    '廷尉奏當：', '一人犯蹕，', '當罰金。', 
+                    '文帝怒曰：「此人親驚吾馬，', '吾馬賴柔和，', '令他馬，', 
+                    '固不敗傷我乎？', '而廷尉乃當之罰金！」', '釋之曰：「法者，', 
+                    '天子所與天下公共也。', '今法如此而更重之，', '是法不信於民也。', 
+                    '且方其時，', '上使立誅之則已。', '今既下廷尉，', 
+                    '廷尉，天下之平也，', '一傾而天下用法皆為輕重，', '民安所錯其手足？', 
+                    '唯陛下察之。」'
+                ]
+            },
+            {
+                id: 'q4',
+                label: '第四段',
+                answer: '良久，上曰：「廷尉當是也。」',
+                chunks: ['良久，', '上曰：「廷尉當是也。」']
+            }
+        ];
+
+        let completedCount = 0;
+        const totalCount = exercises.length;
+        const synth = window.speechSynthesis;
+
+        // --- FUNCTIONS ---
+
+        function speak(text, lang = 'zh-TW', rate = 0.95) {
+            if (!text) return;
+            synth.cancel();
+
+            let speechText = text;
+
+            // --- 張釋之執法 語音修正 ---
+            speechText = speechText.replace(/錯其手足/g, '措其手足'); // 通假字
+            
+            // 第一段
+            speechText = speechText.replace(/為廷尉/g, '維廷尉'); // ㄨㄟˊ
+
+            // 第二段
+            speechText = speechText.replace(/乘輿/g, '成輿'); // ㄔㄥˊ
+            speechText = speechText.replace(/屬之廷尉/g, '囑之廷尉'); // ㄓㄨˇ
+            speechText = speechText.replace(/以為行已過/g, '以維航已過'); // ㄨㄟˊ、ㄏㄤˊ
+            speechText = speechText.replace(/車騎/g, '車奇'); // ㄑ一ˊ
+
+            // 第三段
+            speechText = speechText.replace(/不敗/g, '醭敗'); // 強制發 ㄅㄨˊ（利用同音字「醭」）
+            speechText = speechText.replace(/不信/g, '醭信'); // 強制發 ㄅㄨˊ
+            
+            const utterThis = new SpeechSynthesisUtterance(speechText);
+            utterThis.lang = lang;
+            utterThis.rate = rate;
+            synth.speak(utterThis);
+        }
+
+        function renderApp() {
+            const container = document.getElementById('container-exercises');
+
+            exercises.forEach((ex) => {
+                const card = document.createElement('div');
+                card.className = 'exercise-card px-5 py-6 sm:px-8 sm:py-6';
+                card.id = `card-${ex.id}`;
+                card.dataset.id = ex.id;
+
+                const shuffledWords = [...ex.chunks].sort(() => Math.random() - 0.5);
+
+                card.innerHTML = `
+                    <div class="mb-4 flex items-center gap-3">
+                        <h2 class="text-xl font-bold text-gray-700 tracking-wide border-l-4 border-emerald-500 pl-3">${ex.label}</h2>
+                    </div>
+                    
+                    <!-- Word Bank -->
+                    <div class="word-bank flex flex-wrap gap-3 mb-6 justify-center" id="bank-${ex.id}">
+                        ${shuffledWords.map(word => `<div class="word-item">${word}</div>`).join('')}
+                    </div>
+
+                    <!-- Drop Zone -->
+                    <div class="drop-zone mb-4" id="zone-${ex.id}"></div>
+
+                    <!-- Actions -->
+                    <div class="flex flex-wrap items-center gap-3 mt-2">
+                        <button class="btn-action check-btn bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 px-8 rounded-xl shadow-md border-b-4 border-emerald-700 active:border-b-0 active:translate-y-1 transition-all text-lg flex-grow sm:flex-grow-0" data-id="${ex.id}">檢查答案</button>
+                        <button class="btn-action reset-btn bg-white hover:bg-gray-50 text-gray-600 border-2 border-gray-300 border-b-4 font-bold py-3 px-6 rounded-xl active:border-b-2 active:translate-y-1 transition-all text-lg" data-id="${ex.id}">重置</button>
+                        <button class="btn-action hint-btn bg-amber-100 hover:bg-amber-200 text-amber-800 font-bold py-3 px-6 rounded-xl border-b-4 border-amber-300 active:border-b-0 active:translate-y-1 transition-all flex items-center gap-2 text-lg ml-auto" data-text="${ex.answer.replace(/"/g, '&quot;')}">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19.114 5.636a9 9 0 010 12.728M16.463 8.288a5.25 5.25 0 010 7.424M6.75 8.25l4.72-4.72a.75.75 0 011.28.53v15.88a.75.75 0 01-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.01 9.01 0 012.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75z" /></svg>
+                            聽解答
+                        </button>
+                    </div>
+                    <div class="feedback text-lg font-bold flex items-center"></div>
+                `;
+
+                container.appendChild(card);
+            });
+            
+            // 初始化進度條文字顯示
+            document.getElementById('progress-text').textContent = `完成進度：0/${totalCount}`;
+        }
+
+        // --- EVENT DELEGATION ---
+        document.body.addEventListener('click', (e) => {
+            const target = e.target;
+
+            // 1. Word Item Click (Chinese blocks)
+            if (target.classList.contains('word-item')) {
+                const card = target.closest('.exercise-card');
+                if (!card) return;
+                const exId = card.dataset.id;
+                const bank = document.getElementById(`bank-${exId}`);
+                const zone = document.getElementById(`zone-${exId}`);
+
+                // Speak in Chinese
+                speak(target.innerText, 'zh-TW', 1.0);
+
+                if (target.parentElement === bank) {
+                    zone.appendChild(target);
+                } else {
+                    bank.appendChild(target);
+                }
+
+                // Reset state
+                const feedbackEl = card.querySelector('.feedback');
+                feedbackEl.textContent = '';
+                zone.classList.remove('correct', 'incorrect');
+
+                // 如果這題原本已經答對，但現在被移動了任何一塊，就要取消它的完成狀態並扣除進度
+                if (zone.dataset.completed) {
+                    delete zone.dataset.completed;
+                    updateProgress(-1);
+                }
+
+                return;
+            }
+
+            // 2. Check Button
+            if (target.classList.contains('check-btn')) {
+                const id = target.dataset.id;
+                checkAnswer(id);
+                return;
+            }
+
+            // 3. Reset Button
+            if (target.classList.contains('reset-btn')) {
+                const id = target.dataset.id;
+                resetQuestion(id);
+                return;
+            }
+
+            // 4. Hint Button (Listen to Answer)
+            if (target.closest('.hint-btn')) {
+                const btn = target.closest('.hint-btn');
+                const text = btn.dataset.text;
+                speak(text, 'zh-TW', 0.85);
+                return;
+            }
+        });
+
+        // --- Overlay Logic ---
+        function showOverlay() {
+            const overlay = document.getElementById('completion-overlay');
+            const modal = document.getElementById('completion-modal');
+            
+            overlay.classList.remove('hidden');
+            setTimeout(() => {
+                overlay.classList.remove('opacity-0');
+                modal.classList.remove('scale-90');
+                modal.classList.add('scale-100');
+                for(let i=0; i<50; i++) createConfetti(overlay);
+            }, 10);
+        }
+
+        window.closeOverlay = function() {
+            const overlay = document.getElementById('completion-overlay');
+            const modal = document.getElementById('completion-modal');
+            
+            overlay.classList.add('opacity-0');
+            modal.classList.remove('scale-100');
+            modal.classList.add('scale-90');
+            
+            setTimeout(() => {
+                overlay.classList.add('hidden');
+                const confettis = document.querySelectorAll('.confetti');
+                confettis.forEach(c => c.remove());
+            }, 500);
+        }
+
+        function createConfetti(container) {
+            const confetti = document.createElement('div');
+            confetti.classList.add('confetti');
+            const colors = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'];
+            confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+            confetti.style.left = Math.random() * 100 + 'vw';
+            confetti.style.animationDuration = (Math.random() * 2 + 2) + 's';
+            confetti.style.opacity = Math.random();
+            container.appendChild(confetti);
+        }
+
+        function checkAnswer(id) {
+            const zone = document.getElementById(`zone-${id}`);
+            const card = document.getElementById(`card-${id}`);
+            const feedbackEl = card.querySelector('.feedback');
+            const exData = exercises.find(e => e.id === id);
+            
+            const rawWords = Array.from(zone.children).map(el => el.innerText);
+            
+            // Join without spaces for Chinese sentence comparison
+            let userSentence = rawWords.join('');
+            let correctAnswer = exData.answer;
+
+            if (userSentence === correctAnswer) {
+                feedbackEl.innerHTML = '<span class="text-emerald-600 flex items-center gap-2">🎉 答對了！</span>';
+                zone.classList.remove('incorrect');
+                zone.classList.add('correct');
+                
+                if (!zone.dataset.completed) {
+                    zone.dataset.completed = 'true';
+                    updateProgress(1);
+                }
+            } else {
+                feedbackEl.innerHTML = '<span class="text-red-500 flex items-center gap-2">🤔 順序好像不太對，再試試看？</span>';
+                zone.classList.remove('correct');
+                zone.classList.add('incorrect');
+                
+                zone.style.animation = 'none';
+                zone.offsetHeight; 
+                zone.style.animation = null; 
+            }
+        }
+
+        function resetQuestion(id) {
+            const bank = document.getElementById(`bank-${id}`);
+            const zone = document.getElementById(`zone-${id}`);
+            const card = document.getElementById(`card-${id}`);
+            const feedbackEl = card.querySelector('.feedback');
+            
+            Array.from(zone.children).forEach(child => bank.appendChild(child));
+            
+            const words = Array.from(bank.children);
+            words.sort(() => Math.random() - 0.5);
+            words.forEach(w => bank.appendChild(w));
+
+            feedbackEl.textContent = '';
+            zone.classList.remove('correct', 'incorrect');
+            
+            if (zone.dataset.completed) {
+                delete zone.dataset.completed;
+                updateProgress(-1);
+            }
+        }
+
+        function updateProgress(change) {
+            completedCount += change;
+            completedCount = Math.max(0, Math.min(completedCount, totalCount));
+            
+            const percentage = Math.round((completedCount / totalCount) * 100);
+            const bar = document.getElementById('progress-bar');
+            const text = document.getElementById('progress-text');
+            
+            bar.style.width = `${percentage}%`;
+            text.textContent = `完成進度：${completedCount}/${totalCount}`;
+
+            if (completedCount === totalCount) {
+                bar.classList.remove('from-emerald-400', 'to-teal-400');
+                bar.classList.add('from-amber-400', 'to-orange-500'); // Celebration color
+                showOverlay();
+            } else {
+                bar.classList.add('from-emerald-400', 'to-teal-400');
+                bar.classList.remove('from-amber-400', 'to-orange-500');
+            }
+        }
+
+        // Init
+        renderApp();
+
+    </script>
+</body>
+</html>
