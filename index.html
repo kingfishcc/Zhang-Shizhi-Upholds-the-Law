@@ -3,8 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>張釋之執法（作者：司馬遷）　重組練習</title>
+    <title>張釋之執法</title>
+    
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- 引入 SortableJS 實現拖曳排序功能 -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
     
     <link href="https://cdn.jsdelivr.net/npm/gensen-rounded-web@1.0.1/css/gensen-rounded-tw.css" rel="stylesheet">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -65,6 +70,8 @@
             box-shadow: 0 4px 0 #e5e7eb;
             font-size: 1.35rem;
             margin: 6px;
+            
+            /* 阻擋雙擊放大，讓點擊判斷更靈敏 (連點防護) */
             touch-action: manipulation;
         }
         .word-item:active {
@@ -79,6 +86,18 @@
         }
         .word-item:active:hover {
              box-shadow: none;
+        }
+        
+        /* 拖曳時的樣式設定 */
+        .sortable-ghost {
+            opacity: 0.5;
+            background-color: #f8fafc;
+            border: 3px dashed #94a3b8;
+        }
+        .sortable-drag {
+            cursor: grabbing !important;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+            transform: scale(1.05);
         }
 
         /* Drop Zone */
@@ -237,7 +256,7 @@
                 <div class="h-4 bg-gray-200 rounded-full overflow-hidden border border-gray-100">
                     <div id="progress-bar" class="h-full bg-gradient-to-r from-emerald-400 to-teal-400 transition-all duration-500 ease-out" style="width: 0%"></div>
                 </div>
-                <p class="text-sm text-gray-500 mt-2 text-center font-bold" id="progress-text">完成進度：0/4</p>
+                <p class="text-sm text-gray-500 mt-2 text-center font-bold" id="progress-text">完成進度：0/6</p>
             </div>
         </header>
 
@@ -281,20 +300,34 @@
             },
             {
                 id: 'q3',
-                label: '第三段',
-                answer: '廷尉奏當：一人犯蹕，當罰金。文帝怒曰：「此人親驚吾馬，吾馬賴柔和，令他馬，固不敗傷我乎？而廷尉乃當之罰金！」釋之曰：「法者，天子所與天下公共也。今法如此而更重之，是法不信於民也。且方其時，上使立誅之則已。今既下廷尉，廷尉，天下之平也，一傾而天下用法皆為輕重，民安所錯其手足？唯陛下察之。」',
+                label: '第三段 ①',
+                answer: '廷尉奏當：一人犯蹕，當罰金。',
                 chunks: [
-                    '廷尉奏當：', '一人犯蹕，', '當罰金。', 
-                    '文帝怒曰：「此人親驚吾馬，', '吾馬賴柔和，', '令他馬，', 
-                    '固不敗傷我乎？', '而廷尉乃當之罰金！」', '釋之曰：「法者，', 
-                    '天子所與天下公共也。', '今法如此而更重之，', '是法不信於民也。', 
+                    '廷尉奏當：', '一人犯蹕，', '當罰金。'
+                ]
+            },
+            {
+                id: 'q4',
+                label: '第三段 ②',
+                answer: '文帝怒曰：「此人親驚吾馬，吾馬賴柔和，令他馬，固不敗傷我乎？而廷尉乃當之罰金！」',
+                chunks: [
+                    '文帝怒曰：', '「此人親驚吾馬，', '吾馬賴柔和，', '令他馬，', 
+                    '固不敗傷我乎？', '而廷尉乃當之罰金！」'
+                ]
+            },
+            {
+                id: 'q5',
+                label: '第三段 ③',
+                answer: '釋之曰：「法者，天子所與天下公共也。今法如此而更重之，是法不信於民也。且方其時，上使立誅之則已。今既下廷尉，廷尉，天下之平也，一傾而天下用法皆為輕重，民安所錯其手足？唯陛下察之。」',
+                chunks: [
+                    '釋之曰：「法者，', '天子所與天下公共也。', '今法如此而更重之，', '是法不信於民也。', 
                     '且方其時，', '上使立誅之則已。', '今既下廷尉，', 
                     '廷尉，天下之平也，', '一傾而天下用法皆為輕重，', '民安所錯其手足？', 
                     '唯陛下察之。」'
                 ]
             },
             {
-                id: 'q4',
+                id: 'q6',
                 label: '第四段',
                 answer: '良久，上曰：「廷尉當是也。」',
                 chunks: ['良久，', '上曰：「廷尉當是也。」']
@@ -304,11 +337,16 @@
         let completedCount = 0;
         const totalCount = exercises.length;
         const synth = window.speechSynthesis;
+        
+        // 用於判斷目前是否正在拖曳，防止放開滑鼠/手指時誤觸點擊事件
+        window.isDraggingItem = false;
 
         // --- FUNCTIONS ---
 
         function speak(text, lang = 'zh-TW', rate = 0.95) {
-            if (!text) return;
+            // 🛡️ 語音引擎相容性與空字串防護
+            if (!text || !synth) return; 
+
             synth.cancel();
 
             let speechText = text;
@@ -375,6 +413,43 @@
                 `;
 
                 container.appendChild(card);
+                
+                // 畫面渲染完成後，為每一個「作答區」初始化拖曳排序功能 (SortableJS)
+                const zone = document.getElementById(`zone-${ex.id}`);
+                new Sortable(zone, {
+                    animation: 150,           // 拖曳時的動畫效果速度
+                    ghostClass: 'sortable-ghost', // 拖曳時下方佔位符的 CSS class
+                    dragClass: 'sortable-drag',   // 正在被拖曳元素的 CSS class
+                    delay: 150,               // 觸控裝置需長按 150 毫秒才能拖曳 (防止誤觸與干擾滑動)
+                    delayOnTouchOnly: true,   // 滑鼠可直接拖曳，僅觸控裝置需要延遲
+
+                    // 開始拖曳時的事件
+                    onStart: function (evt) {
+                        // 標記全域變數為拖曳中，這樣就能有效防止放開時觸發 click 事件
+                        window.isDraggingItem = true;
+                    },
+                    
+                    // 結束拖曳時的事件
+                    onEnd: function (evt) {
+                        const feedbackEl = card.querySelector('.feedback');
+                        
+                        // 清除視覺狀態
+                        feedbackEl.textContent = '';
+                        zone.classList.remove('correct', 'incorrect');
+                        
+                        // 如果這題原本已經答對，但現在被移動了任何一塊，就要取消它的完成狀態並扣除進度
+                        if (zone.dataset.completed) {
+                            delete zone.dataset.completed;
+                            updateProgress(-1);
+                        }
+
+                        // 🛡️ 拖曳狀態卡死防護：
+                        // 稍微延遲解除拖曳狀態 (100毫秒)。
+                        setTimeout(() => { 
+                            window.isDraggingItem = false; 
+                        }, 100);
+                    }
+                });
             });
             
             // 初始化進度條文字顯示
@@ -387,6 +462,9 @@
 
             // 1. Word Item Click (Chinese blocks)
             if (target.classList.contains('word-item')) {
+                // 🛡️ 拖曳防誤觸判斷：如果系統判定目前正在拖曳中，則取消點擊動作
+                if (window.isDraggingItem) return;
+
                 const card = target.closest('.exercise-card');
                 if (!card) return;
                 const exId = card.dataset.id;
