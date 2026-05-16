@@ -117,7 +117,7 @@
             font-family: var(--main-font);
         }
         .drop-zone:empty::before {
-            content: '請點選下方詞語卡片，排列成通順的文句';
+            content: '請點選上方詞語卡片，排列成通順的文句';
             color: #94a3b8;
             font-size: 1.1rem;
             width: 100%;
@@ -416,40 +416,46 @@
                 
                 // 畫面渲染完成後，為每一個「作答區」初始化拖曳排序功能 (SortableJS)
                 const zone = document.getElementById(`zone-${ex.id}`);
-                new Sortable(zone, {
-                    animation: 150,           // 拖曳時的動畫效果速度
-                    ghostClass: 'sortable-ghost', // 拖曳時下方佔位符的 CSS class
-                    dragClass: 'sortable-drag',   // 正在被拖曳元素的 CSS class
-                    delay: 150,               // 觸控裝置需長按 150 毫秒才能拖曳 (防止誤觸與干擾滑動)
-                    delayOnTouchOnly: true,   // 滑鼠可直接拖曳，僅觸控裝置需要延遲
+                
+                // 🛡️ 防護檢查：確保 SortableJS 已經被成功載入
+                if (typeof Sortable !== 'undefined') {
+                    new Sortable(zone, {
+                        animation: 150,           // 拖曳時的動畫效果速度
+                        ghostClass: 'sortable-ghost', // 拖曳時下方佔位符的 CSS class
+                        dragClass: 'sortable-drag',   // 正在被拖曳元素的 CSS class
+                        delay: 150,               // 觸控裝置需長按 150 毫秒才能拖曳 (防止誤觸與干擾滑動)
+                        delayOnTouchOnly: true,   // 滑鼠可直接拖曳，僅觸控裝置需要延遲
 
-                    // 開始拖曳時的事件
-                    onStart: function (evt) {
-                        // 標記全域變數為拖曳中，這樣就能有效防止放開時觸發 click 事件
-                        window.isDraggingItem = true;
-                    },
-                    
-                    // 結束拖曳時的事件
-                    onEnd: function (evt) {
-                        const feedbackEl = card.querySelector('.feedback');
+                        // 開始拖曳時的事件
+                        onStart: function (evt) {
+                            // 標記全域變數為拖曳中，這樣就能有效防止放開時觸發 click 事件
+                            window.isDraggingItem = true;
+                        },
                         
-                        // 清除視覺狀態
-                        feedbackEl.textContent = '';
-                        zone.classList.remove('correct', 'incorrect');
-                        
-                        // 如果這題原本已經答對，但現在被移動了任何一塊，就要取消它的完成狀態並扣除進度
-                        if (zone.dataset.completed) {
-                            delete zone.dataset.completed;
-                            updateProgress(-1);
+                        // 結束拖曳時的事件
+                        onEnd: function (evt) {
+                            const feedbackEl = card.querySelector('.feedback');
+                            
+                            // 清除視覺狀態
+                            feedbackEl.textContent = '';
+                            zone.classList.remove('correct', 'incorrect');
+                            
+                            // 如果這題原本已經答對，但現在被移動了任何一塊，就要取消它的完成狀態並扣除進度
+                            if (zone.dataset.completed) {
+                                delete zone.dataset.completed;
+                                updateProgress(-1);
+                            }
+
+                            // 🛡️ 拖曳狀態卡死防護：
+                            // 稍微延遲解除拖曳狀態 (100毫秒)。
+                            setTimeout(() => { 
+                                window.isDraggingItem = false; 
+                            }, 100);
                         }
-
-                        // 🛡️ 拖曳狀態卡死防護：
-                        // 稍微延遲解除拖曳狀態 (100毫秒)。
-                        setTimeout(() => { 
-                            window.isDraggingItem = false; 
-                        }, 100);
-                    }
-                });
+                    });
+                } else {
+                    console.error("SortableJS is not loaded properly for item: " + ex.id);
+                }
             });
             
             // 初始化進度條文字顯示
@@ -631,8 +637,27 @@
             }
         }
 
-        // Init
-        renderApp();
+        // Init: 加入檢查與延遲重試機制，確保 SortableJS 完全載入後才開始渲染畫面
+        let loadRetries = 0;
+        function initApp() {
+            if (typeof Sortable !== 'undefined') {
+                renderApp();
+            } else if (loadRetries < 20) {
+                // 如果還沒載入，每 100 毫秒重試一次，最多重試 20 次 (約 2 秒)
+                loadRetries++;
+                setTimeout(initApp, 100);
+            } else {
+                console.warn('載入 SortableJS 超時，將以無拖曳模式啟動網頁。');
+                renderApp();
+            }
+        }
+
+        // 確保 DOM 載入完成後才開始檢查外部套件與執行程式
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initApp);
+        } else {
+            initApp();
+        }
 
     </script>
 </body>
